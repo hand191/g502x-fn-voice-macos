@@ -171,7 +171,7 @@ private struct FocusedTextInputIdentity {
 
 @MainActor
 private func focusedTextInputIdentity(
-    requiringCollapsedSelection: Bool = true
+    requiringValidSelectionRange: Bool = true
 ) -> FocusedTextInputIdentity? {
     guard AXIsProcessTrusted() else { return nil }
 
@@ -214,7 +214,7 @@ private func focusedTextInputIdentity(
         return nil
     }
 
-    if requiringCollapsedSelection {
+    if requiringValidSelectionRange {
         var selectedRangeValue: CFTypeRef?
         guard AXUIElementCopyAttributeValue(
             focusedElement,
@@ -229,8 +229,10 @@ private func focusedTextInputIdentity(
         var selectedRange = CFRange()
         guard AXValueGetType(selectedRangeAXValue) == .cfRange,
               AXValueGetValue(selectedRangeAXValue, .cfRange, &selectedRange),
-              selectedRange.location >= 0,
-              selectedRange.length == 0 else {
+              TextSelectionPolicy.allows(
+                  location: selectedRange.location,
+                  length: selectedRange.length
+              ) else {
             return nil
         }
     }
@@ -329,7 +331,7 @@ private final class StopClickCatcher {
         var releaseFocusMatches = false
         for attempt in 0..<3 {
             if let currentTextInput = focusedTextInputIdentity(
-                requiringCollapsedSelection: false
+                requiringValidSelectionRange: false
             ), currentTextInput.pid == expectedTextInput.pid,
             CFEqual(currentTextInput.element, expectedTextInput.element) {
                 releaseFocusMatches = true
@@ -383,7 +385,7 @@ private final class StopClickCatcher {
                 return .notSent("点击前的前台应用已经改变")
             }
             if let latestTextInput = focusedTextInputIdentity(
-                requiringCollapsedSelection: false
+                requiringValidSelectionRange: false
             ), latestTextInput.pid == expectedTextInput.pid,
             CFEqual(latestTextInput.element, expectedTextInput.element) {
                 // The same text control is still active. Its selected range may
@@ -440,7 +442,7 @@ private final class StopClickCatcher {
                 return .notSent("发送前的前台应用已经改变")
             }
             if let readyTextInput = focusedTextInputIdentity(
-                requiringCollapsedSelection: false
+                requiringValidSelectionRange: false
             ), readyTextInput.pid == expectedTextInput.pid,
             CFEqual(readyTextInput.element, expectedTextInput.element) {
                 // The same text control is still active.
@@ -537,7 +539,7 @@ private final class StopClickCatcher {
         }
         guard NSWorkspace.shared.frontmostApplication?.processIdentifier == expectedFrontmostPID,
               let finalTextInput = focusedTextInputIdentity(
-                requiringCollapsedSelection: false
+                requiringValidSelectionRange: false
               ),
               finalTextInput.pid == expectedTextInput.pid,
               CFEqual(finalTextInput.element, expectedTextInput.element) else {
@@ -1092,8 +1094,8 @@ private final class VoiceAppDelegate: NSObject, NSApplicationDelegate, NSMenuDel
                 return
             }
             guard let textInput = focusedTextInputIdentity() else {
-                lastError = "请先把光标放入可识别的文本输入框"
-                logger.notice("G6 down ignored: no safe focused text control")
+                lastError = "请把光标或文字选区放入可识别的文本输入框"
+                logger.notice("G6 down ignored: no focused text control with readable selection")
                 updateMenuUI()
                 return
             }

@@ -1,7 +1,7 @@
 # Validation record
 
 - Date: 2026-09-02
-- Version: 0.3.1 (build 4)
+- Version: 0.3.2 (build 5)
 
 ## Tested environment
 
@@ -15,7 +15,9 @@
 - HID Fn report shape and descriptor tests
 - Release state-machine ordering, duplicate-signal, cleanup, failure, and
   rapid-repress tests
-- Clean public package result: 10/10 tests passed, followed by a successful
+- Text-selection policy tests for insertion points, non-empty replacement
+  ranges, invalid ranges, and integer overflow
+- Clean public package result: 12/12 tests passed, followed by a successful
   release build and signed-app packaging check
 
 Run them with:
@@ -24,7 +26,22 @@ Run them with:
 swift test
 ```
 
-## Manual acceptance
+## Manual acceptance: 0.3.2
+
+The installed 0.3.2 build passed three focused end-use regressions:
+
+- A non-empty selection in an editable chat field was replaced once; release
+  stopped recognition immediately; the insertion point and pointer stayed put.
+- A fully selected Chrome address bar was replaced once; release stopped
+  recognition immediately; the page did not navigate and the app remained
+  connected.
+- A normal collapsed insertion point still inserted text once; release stopped
+  recognition immediately; the insertion point and pointer stayed put.
+
+Unified logs for the accepted cycles showed one Fn-down, one isolated stop
+click, and one Fn-up cleanup, with no reconnect or stop failure.
+
+## Previous stability baseline: 0.3.1
 
 The installed 0.3.1 build passed all of the final end-use checks:
 
